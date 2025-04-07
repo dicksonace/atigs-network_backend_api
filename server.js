@@ -1,4 +1,4 @@
-require('dotenv').config(); // This must be at the VERY TOP of your file
+require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -10,20 +10,50 @@ const app = express();
 // Middleware
 app.use(express.json());
 
-// Database connection - add error handling
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => {
-  console.error('MongoDB connection error:', err);
-  process.exit(1); // Exit if DB connection fails
+// Enhanced MongoDB connection
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s
+      socketTimeoutMS: 45000 // Close sockets after 45s inactivity
+    });
+    console.log('MongoDB connected');
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  }
+};
+
+// Connection events
+mongoose.connection.on('connected', () => {
+  console.log('Mongoose connected to DB');
 });
+
+mongoose.connection.on('error', (err) => {
+  console.error('Mongoose connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('Mongoose disconnected');
+});
+
+// Initialize connection
+connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/membership', membershipRoutes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(mongoose.connection.readyState === 1 ? 200 : 503)
+    .json({ 
+      status: mongoose.connection.readyState === 1 ? 'healthy' : 'unhealthy',
+      dbState: mongoose.connection.readyState 
+    });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -32,4 +62,10 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Vercel-compatible export
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
