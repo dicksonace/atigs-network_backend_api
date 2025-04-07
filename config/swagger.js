@@ -1,3 +1,4 @@
+const path = require('path'); // Use the path module to resolve paths
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
@@ -10,13 +11,13 @@ const options = {
       description: 'API documentation',
     },
   },
-  apis: ['../routes/*.js'], // Path to your API docs
+  apis: [path.join(__dirname, '../routes/*.js')], // Correctly resolve the path to your route files
 };
 
 const swaggerSpec = swaggerJSDoc(options);
 
 function swaggerDocs(app) {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // Serve the Swagger UI at /api-docs
 }
 
 module.exports = swaggerDocs;
