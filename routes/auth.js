@@ -1,11 +1,34 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 
 /**
  * @swagger
- * /register:
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: The unique identifier of the user
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: The user's email
+ *         password:
+ *           type: string
+ *           description: The user's password (hashed)
+ *         role:
+ *           type: string
+ *           description: The role of the user (e.g., admin, user)
+ */
+
+/**
+ * @swagger
+ * /auth/register:
  *   post:
  *     summary: Register a new user
  *     description: Registers a new user by providing an email and password.
@@ -31,7 +54,6 @@ const router = express.Router();
  *               type: object
  *               properties:
  *                 user:
- *                   type: object
  *                   $ref: '#/components/schemas/User'
  *                 accessToken:
  *                   type: string
@@ -53,7 +75,7 @@ router.post('/register', [
 
   try {
     const { email, password } = req.body;
-    
+
     if (await User.findOne({ email })) {
       return res.status(400).json({ message: 'Email already exists' });
     }
@@ -70,7 +92,7 @@ router.post('/register', [
 
 /**
  * @swagger
- * /login:
+ * /auth/login:
  *   post:
  *     summary: Login a user
  *     description: Logs in a user by providing email and password to receive an access token and refresh token.
@@ -95,7 +117,6 @@ router.post('/register', [
  *               type: object
  *               properties:
  *                 user:
- *                   type: object
  *                   $ref: '#/components/schemas/User'
  *                 accessToken:
  *                   type: string
@@ -124,7 +145,7 @@ router.post('/login', async (req, res) => {
 
 /**
  * @swagger
- * /refresh:
+ * /auth/refresh:
  *   post:
  *     summary: Refresh access token
  *     description: Use the refresh token to get a new access token.

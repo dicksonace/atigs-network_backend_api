@@ -4,7 +4,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const membershipRoutes = require('./routes/membership');
-const swaggerDocs = require('./config/swagger');
+const swaggerDocs = require('./swagger');
 
 const app = express();
 
