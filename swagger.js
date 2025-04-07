@@ -9,8 +9,20 @@ const options = {
       version: '1.0.0',
       description: 'User Authentication API',
     },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
   },
-  apis: ['./routes/*.js'], // Path to your route files with Swagger comments
+  apis: [
+    './routes/*.js',    // Scan route files
+    './controllers/*.js' // Scan controller files
+  ],
 };
 
 const swaggerSpec = swaggerJSDoc(options);

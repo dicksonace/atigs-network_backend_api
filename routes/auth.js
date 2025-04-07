@@ -1,236 +1,168 @@
-const express = require('express');
-const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const express = require("express");
 const router = express.Router();
+const { body, query } = require("express-validator");
+const { authenticate, authorize } = require('../middleware/authMiddleware');
+const authController = require("../controllers/authController");
 
-/**
- * @swagger
- * components:
- *   schemas:
- *     User:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           description: The unique identifier of the user
- *         email:
- *           type: string
- *           format: email
- *           description: The user's email
- *         password:
- *           type: string
- *           description: The user's password (hashed)
- *         role:
- *           type: string
- *           description: The role of the user (e.g., admin, user)
- */
+router.post(
+  "/register",
+  [
+    body("firstName")
+      .notEmpty()
+      .trim()
+      .escape()
+      .withMessage("First name is required"),
+    body("lastName")
+      .notEmpty()
+      .trim()
+      .escape()
+      .withMessage("Last name is required"),
+    body("email")
+      .isEmail()
+      .normalizeEmail()
+      .withMessage("Valid email is required"),
+      body('phoneNumber')
+      .optional()
+      .matches(/^\+?\d{10,15}$/) // Accepts optional + prefix and 10-15 digits
+      .withMessage('Phone must be 10-15 digits with optional + prefix'),
+    body("companyName")
+      .optional()
+      .trim()
+      .escape(),
+    body("password")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters")
+      .matches(/[A-Z]/)
+      .withMessage("Password must contain at least one uppercase letter")
+      .matches(/[a-z]/)
+      .withMessage("Password must contain at least one lowercase letter")
+      .matches(/[0-9]/)
+      .withMessage("Password must contain at least one number")
+      .matches(/[!@#$%^&*]/)
+      .withMessage("Password must contain at least one special character"),
+    body("confirmPassword")
+      .notEmpty()
+      .withMessage("Please confirm your password")
+      .custom((value, { req }) => value === req.body.password)
+      .withMessage("Passwords do not match"),
+  ],
+  authController.register
+);
 
-/**
- * @swagger
- * /api/auth/register:
- *   post:
- *     summary: Register a new user
- *     description: Registers a new user by providing an email and password.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *                 minLength: 6
- *     responses:
- *       201:
- *         description: User created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 user:
- *                   $ref: '#/components/schemas/User'
- *                 accessToken:
- *                   type: string
- *                 refreshToken:
- *                   type: string
- *       400:
- *         description: Email already exists or validation errors
- *       500:
- *         description: Server error
- */
-router.post('/register', [
-  body('email').isEmail().normalizeEmail(),
-  body('password').isLength({ min: 6 })
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
+router.get(
+  "/verify-email",
+  [
+    query("token")
+      .notEmpty()
+      .withMessage("Verification token is required")
+      .isHexadecimal()
+      .withMessage("Token must be a valid hexadecimal string")
+      .isLength({ min: 40, max: 40 })
+      .withMessage("Invalid token format"),
+  ],
+  authController.verifyEmail
+);
 
-  try {
-    const { email, password } = req.body;
+router.post(
+  "/login",
+  [
+    body("email")
+      .isEmail()
+      .withMessage("Valid email required")
+      .normalizeEmail(),
+    body("password").notEmpty().withMessage("Password required"),
+  ],
+  authController.login
+);
 
-    if (await User.findOne({ email })) {
-      return res.status(400).json({ message: 'Email already exists' });
-    }
+router.post(
+  "/refresh-token",
+  [
+    body("refreshToken")
+      .notEmpty()
+      .withMessage("Refresh token is required")
+      .isString()
+      .withMessage("Refresh token must be a string"),
+  ],
+  authController.refreshToken
+);
 
-    // Hash the password before saving the user
-    const hashedPassword = await bcrypt.hash(password, 10);
+router.post(
+  "/forgot-password",
+  [
+    body("email")
+      .notEmpty()
+      .withMessage("Email is required")
+      .isEmail()
+      .withMessage("Valid email required")
+      .normalizeEmail(),
+  ],
+  authController.forgotPassword
+);
 
-    const user = new User({ email, password: hashedPassword });
-    await user.save();
+router.post(
+  "/reset-password",
+  [
+    body("token")
+      .notEmpty()
+      .withMessage("Reset token is required")
+      .isString()
+      .withMessage("Token must be a string"),
 
-    const tokens = generateTokens(user);
-    res.status(201).json({ user, ...tokens });
-  } catch (err) {
-    console.error(err); 
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-});
+    body("newPassword")
+      .notEmpty()
+      .withMessage("New password is required")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters")
+      .matches(/[A-Z]/)
+      .withMessage("Password must contain at least one uppercase letter")
+      .matches(/[a-z]/)
+      .withMessage("Password must contain at least one lowercase letter")
+      .matches(/[0-9]/)
+      .withMessage("Password must contain at least one number")
+      .matches(/[!@#$%^&*]/)
+      .withMessage("Password must contain at least one special character"),
+  ],
+  authController.resetPassword
+);
 
-/**
- * @swagger
- * /api/auth/login:
- *   post:
- *     summary: Login a user
- *     description: Logs in a user by providing email and password to receive an access token and refresh token.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: User logged in successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 user:
- *                   $ref: '#/components/schemas/User'
- *                 accessToken:
- *                   type: string
- *                 refreshToken:
- *                   type: string
- *       401:
- *         description: Invalid credentials
- *       500:
- *         description: Server error
- */
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
+router.post(
+  '/generate-otp',
+  [
+    body('email')
+      .notEmpty().withMessage('Email is required')
+      .isEmail().withMessage('Valid email required')
+      .normalizeEmail(),
+  ],
+  authController.generateOTP
+);
 
-    const tokens = generateTokens(user);
 
-    // Send tokens in HTTP-only cookies for secure access
-    res.cookie('accessToken', tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000 // 15 minutes
-    });
+router.post(
+  '/verify-otp',
+  [
+    body('email')
+      .notEmpty().withMessage('Email is required')
+      .isEmail().withMessage('Valid email required')
+      .normalizeEmail(),
+    body('otp')
+      .notEmpty().withMessage('OTP is required')
+      .matches(/^\d{6}$/).withMessage('OTP must be 6 digits')
+  ],
+  authController.verifyOTP
+);
 
-    res.cookie('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-    });
 
-    res.json({ user, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-/**
- * @swagger
- * /api/auth/refresh:
- *   post:
- *     summary: Refresh access token
- *     description: Use the refresh token to get a new access token.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               refreshToken:
- *                 type: string
- *     responses:
- *       200:
- *         description: New access token generated
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 accessToken:
- *                   type: string
- *       401:
- *         description: Refresh token required or invalid
- *       403:
- *         description: Invalid refresh token
- */
-router.post('/refresh', async (req, res) => {
-  const { refreshToken } = req.body;
-  if (!refreshToken) return res.status(401).json({ message: 'Refresh token required' });
-
-  try {
-    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId);
-
-    if (!user || !user.refreshTokens.includes(refreshToken)) {
-      return res.status(403).json({ message: 'Invalid refresh token' });
-    }
-
-    const newAccessToken = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
-
-    res.json({ accessToken: newAccessToken });
-  } catch (err) {
-    res.status(403).json({ message: 'Invalid refresh token' });
-  }
-});
-
-// Utility function to generate JWT tokens
-function generateTokens(user) {
-  const accessToken = jwt.sign(
-    { userId: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '15m' }
-  );
-
-  const refreshToken = jwt.sign(
-    { userId: user._id },
-    process.env.JWT_SECRET,
-    { expiresIn: '30d' }
-  );
-
-  return { accessToken, refreshToken };
-}
+router.post(
+  '/logout',
+  authenticate, // Requires valid access token
+  [
+    body('refreshToken')
+      .notEmpty().withMessage('Refresh token is required')
+      .isJWT().withMessage('Invalid token format')
+  ],
+  authController.logout
+);
 
 module.exports = router;
