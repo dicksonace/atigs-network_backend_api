@@ -1,43 +1,35 @@
-require('dotenv').config();
-const express = require('express');
-const connectDB = require('./config/db');
+require('dotenv').config(); // This must be at the VERY TOP of your file
 
-// Initialize Express
+const express = require('express');
+const mongoose = require('mongoose');
+const authRoutes = require('./routes/auth');
+const membershipRoutes = require('./routes/membership');
+
 const app = express();
 
-// 1. Connect to DB with status logging
-connectDB().then(connection => {
-  // Only start server after DB connection is established
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log('\n📊 Server Status:');
-    console.log(`   MongoDB: ${connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
-    console.log(`   Express: Listening on port ${PORT}`);
-    console.log('\n🔗 Endpoints:');
-    console.log(`   http://localhost:${PORT}/`);
-  });
-});
-
-// 2. Middlewares
+// Middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// 3. Routes
-app.get('/', (req, res) => {
-  res.send('🚀 API Running');
+// Database connection - add error handling
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('Connected to MongoDB'))
+.catch(err => {
+  console.error('MongoDB connection error:', err);
+  process.exit(1); // Exit if DB connection fails
 });
 
-// 4. Error Handling
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/membership', membershipRoutes);
+
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).send('💥 Server Error');
+  res.status(500).json({ message: 'Server error' });
 });
 
-// DB Connection Check Endpoint (optional)
-app.get('/status', (req, res) => {
-  const dbStatus = mongoose.connection.readyState;
-  res.json({
-    database: dbStatus === 1 ? 'Connected' : 'Disconnected',
-    server: 'Running'
-  });
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
