@@ -4,8 +4,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const membershipRoutes = require('./routes/membership');
+const swaggerDocs = require('./config/swagger');
 
 const app = express();
+
+swaggerDocs(app);
 
 // Middleware
 app.use(express.json());
