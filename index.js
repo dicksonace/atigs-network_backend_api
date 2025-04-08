@@ -3,10 +3,20 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
+const cors = require('cors');
+
 
 const swaggerDocs = require('./swagger');
 
 const app = express();
+
+const corsOptions = {
+  origin: process.env.FRONTEND_URL,
+  credentials: true,
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+
+app.use(cors(corsOptions));
 
 swaggerDocs(app);
 
