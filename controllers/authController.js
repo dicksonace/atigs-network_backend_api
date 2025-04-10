@@ -230,7 +230,7 @@ exports.register = async (req, res) => {
     await user.save();
 
     // 5. Send verification email
-    const verificationUrl = `${process.env.BASE_URL}/verify-email?token=${verificationToken}`;
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
     await sendEmail(
       user.email,
       'Welcome to ATIGS Network - Verify Your Email',
