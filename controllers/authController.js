@@ -575,7 +575,7 @@ exports.forgotPassword = async (req, res) => {
     const resetToken = user.generatePasswordResetToken();
     await user.save();
 
-    const resetUrl = `${process.env.BASE_URL}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
     await sendEmail(
       user.email,
       'Password Reset Request - ATIGS Network',
