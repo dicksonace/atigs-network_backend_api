@@ -1,27 +1,26 @@
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const { body, validationResult } = require('express-validator');
-const nodemailer = require('nodemailer');
-const { v4: uuidv4 } = require('uuid');
+const User = require("../models/User");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const { body, validationResult } = require("express-validator");
+const nodemailer = require("nodemailer");
+const { v4: uuidv4 } = require("uuid");
 
-const { 
+const {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendLoginNotification,
   sendOTPEmail,
-  sendEmailVerified
-} = require('../utils/emailSender');
-
+  sendEmailVerified,
+} = require("../utils/emailSender");
 
 // Email transporter setup
 const transporter = nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE,
   auth: {
     user: process.env.EMAIL_USERNAME,
-    pass: process.env.EMAIL_PASSWORD
-  }
+    pass: process.env.EMAIL_PASSWORD,
+  },
 });
 
 // Send email function
@@ -32,11 +31,11 @@ const sendEmail = async (to, subject, text, html) => {
       to,
       subject,
       text,
-      html
+      html,
     });
   } catch (error) {
-    console.error('Error sending email:', error);
-    throw new Error('Failed to send email');
+    console.error("Error sending email:", error);
+    throw new Error("Failed to send email");
   }
 };
 
@@ -45,13 +44,13 @@ const generateTokens = (user) => {
   const accessToken = jwt.sign(
     { userId: user._id, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: '15m' }
+    { expiresIn: "15m" }
   );
 
   const refreshToken = jwt.sign(
     { userId: user._id },
     process.env.JWT_REFRESH_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: "7d" }
   );
 
   return { accessToken, refreshToken };
@@ -194,45 +193,47 @@ exports.register = async (req, res) => {
   }
 
   try {
-    const { 
-      firstName, 
-      lastName, 
-      email, 
-      phoneNumber, 
-      companyName, 
+    const {
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      companyName,
       password,
-      confirmPassword // Add this
+      confirmPassword, // Add this
     } = req.body;
 
     // 1. Password Confirmation Check
     if (password !== confirmPassword) {
-      return res.status(400).json({ message: 'Passwords do not match' });
+      return res.status(400).json({ message: "Passwords do not match" });
     }
 
     // 2. Email Existence Check
     if (await User.findOne({ email })) {
-      return res.status(400).json({ message: 'Email already exists' });
+      return res.status(400).json({ message: "Email already exists" });
     }
 
     // 3. Password Strength Validation
-    const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$/;
+    const passwordRegex =
+      /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$/;
     if (!passwordRegex.test(password)) {
-      return res.status(400).json({ 
-        message: 'Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character'
+      return res.status(400).json({
+        message:
+          "Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character",
       });
     }
 
-    const user = new User({ 
-      firstName, 
-      lastName, 
-      email, 
-      phoneNumber, 
-      companyName, 
-      password 
+    const user = new User({
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      companyName,
+      password,
     });
 
     // 4. Generate and save verification token
-    const verificationToken = crypto.randomBytes(20).toString('hex');
+    const verificationToken = crypto.randomBytes(20).toString("hex");
     user.verificationToken = verificationToken;
     user.verificationTokenExpires = Date.now() + 3600000; // 1 hour expiry
 
@@ -255,19 +256,22 @@ exports.register = async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      companyName: user.companyName
+      companyName: user.companyName,
     };
 
-    res.status(201).json({ 
-      message: 'Registration successful. Please check your email for verification.',
-      user: userResponse
+    res.status(201).json({
+      message:
+        "Registration successful. Please check your email for verification.",
+      user: userResponse,
     });
-
   } catch (err) {
-    console.error('Registration Error:', err);
-    res.status(500).json({ 
-      message: 'Registration failed', 
-      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    console.error("Registration Error:", err);
+    res.status(500).json({
+      message: "Registration failed",
+      error:
+        process.env.NODE_ENV === "development"
+          ? err.message
+          : "Internal server error",
     });
   }
 };
@@ -324,13 +328,15 @@ const verificationEmailTemplate = (name, url) => `
 exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
-    const user = await User.findOne({ 
+    const user = await User.findOne({
       verificationToken: token,
-      verificationTokenExpires: { $gt: Date.now() }
+      verificationTokenExpires: { $gt: Date.now() },
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired verification token' });
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired verification token" });
     }
 
     user.isVerified = true;
@@ -338,19 +344,21 @@ exports.verifyEmail = async (req, res) => {
     user.verificationTokenExpires = undefined;
     await user.save();
 
-    await sendEmail(
-      user.email,
-      'Email Verified - Welcome to ATIGS Network',
-      `Welcome ${user.firstName}! Your email has been successfully verified.`,
-      `<p>Welcome ${user.firstName}!</p>
-       <p>Your email has been successfully verified.</p>
-       <p>You can now log in to your account and start exploring ATIGS Network.</p>`
-    );
+    // await sendEmail(
+    //   user.email,
+    //   'Email Verified - Welcome to ATIGS Network',
+    //   `Welcome ${user.firstName}! Your email has been successfully verified.`,
+    //   `<p>Welcome ${user.firstName}!</p>
+    //    <p>Your email has been successfully verified.</p>
+    //    <p>You can now log in to your account and start exploring ATIGS Network.</p>`
+    // );
 
-    res.json({ message: 'Email verified successfully' });
+    await sendEmailVerified(user);
+
+    res.json({ message: "Email verified successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -406,57 +414,62 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     if (!user.isVerified) {
-      return res.status(403).json({ message: 'Please verify your email first' });
+      return res
+        .status(403)
+        .json({ message: "Please verify your email first" });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const tokens = generateTokens(user);
     user.refreshTokens.push(tokens.refreshToken);
     await user.save();
 
-    await sendEmail(
-      user.email,
-      'Login Notification - ATIGS Network',
-      `You have successfully logged in to your ATIGS Network account.`,
-      `<p>Hello ${user.firstName},</p>
-       <p>You have successfully logged in to your ATIGS Network account.</p>
-       <p>If this wasn't you, please secure your account immediately.</p>`
-    );
+    // await sendEmail(
+    //   user.email,
+    //   'Login Notification - ATIGS Network',
+    //   `You have successfully logged in to your ATIGS Network account.`,
+    //   `<p>Hello ${user.firstName},</p>
+    //    <p>You have successfully logged in to your ATIGS Network account.</p>
+    //    <p>If this wasn't you, please secure your account immediately.</p>`
+    // );
 
-    res.cookie('accessToken', tokens.accessToken, {
+    const deviceInfo = req.headers["user-agent"] || "a new device";
+    await sendLoginNotification(user, deviceInfo);
+
+    res.cookie("accessToken", tokens.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 15 * 60 * 1000,
     });
 
-    res.cookie('refreshToken', tokens.refreshToken, {
+    res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({ 
+    res.json({
       user: {
         id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role
+        role: user.role,
       },
       accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken
+      refreshToken: tokens.refreshToken,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -509,7 +522,7 @@ exports.login = async (req, res) => {
 exports.refreshToken = async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) {
-    return res.status(401).json({ message: 'Refresh token required' });
+    return res.status(401).json({ message: "Refresh token required" });
   }
 
   try {
@@ -517,19 +530,19 @@ exports.refreshToken = async (req, res) => {
     const user = await User.findById(decoded.userId);
 
     if (!user || !user.refreshTokens.includes(refreshToken)) {
-      return res.status(403).json({ message: 'Invalid refresh token' });
+      return res.status(403).json({ message: "Invalid refresh token" });
     }
 
     const newAccessToken = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: "15m" }
     );
 
     res.json({ accessToken: newAccessToken });
   } catch (err) {
     console.error(err);
-    res.status(403).json({ message: 'Invalid refresh token' });
+    res.status(403).json({ message: "Invalid refresh token" });
   }
 };
 
@@ -580,27 +593,29 @@ exports.forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const resetToken = user.generatePasswordResetToken();
     await user.save();
 
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-    await sendEmail(
-      user.email,
-      'Password Reset Request - ATIGS Network',
-      `You requested a password reset. Please click this link to reset your password: ${resetUrl}`,
-      `<p>Hello ${user.firstName},</p>
-       <p>You requested a password reset. Please click <a href="${resetUrl}">here</a> to reset your password.</p>
-       <p>This link will expire in 1 hour.</p>
-       <p>If you didn't request this, please ignore this email.</p>`
-    );
+    // await sendEmail(
+    //   user.email,
+    //   "Password Reset Request - ATIGS Network",
+    //   `You requested a password reset. Please click this link to reset your password: ${resetUrl}`,
+    //   `<p>Hello ${user.firstName},</p>
+    //    <p>You requested a password reset. Please click <a href="${resetUrl}">here</a> to reset your password.</p>
+    //    <p>This link will expire in 1 hour.</p>
+    //    <p>If you didn't request this, please ignore this email.</p>`
+    // );
 
-    res.json({ message: 'Password reset instructions sent to your email' });
+    await sendPasswordResetEmail(user, resetUrl);
+
+    res.json({ message: "Password reset instructions sent to your email" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -652,13 +667,15 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
-    const user = await User.findOne({ 
+    const user = await User.findOne({
       resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }
+      resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired password reset token' });
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired password reset token" });
     }
 
     user.password = newPassword;
@@ -668,17 +685,17 @@ exports.resetPassword = async (req, res) => {
 
     await sendEmail(
       user.email,
-      'Password Changed - ATIGS Network',
+      "Password Changed - ATIGS Network",
       `Your ATIGS Network password has been successfully changed.`,
       `<p>Hello ${user.firstName},</p>
        <p>Your password has been successfully changed.</p>
        <p>If you didn't make this change, please secure your account immediately.</p>`
     );
 
-    res.json({ message: 'Password reset successfully' });
+    res.json({ message: "Password reset successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -730,8 +747,10 @@ exports.generateOTP = async (req, res) => {
 
     if (!user) {
       // Delay response to prevent email enumeration attacks
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return res.status(404).json({ message: 'If this email exists, OTP has been sent' });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return res
+        .status(404)
+        .json({ message: "If this email exists, OTP has been sent" });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -744,7 +763,7 @@ exports.generateOTP = async (req, res) => {
 
     await sendEmail(
       user.email,
-      'Your ATIGS Network OTP',
+      "Your ATIGS Network OTP",
       `Your verification code is: ${otp}`,
       `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #2563eb;">ATIGS Network Verification</h2>
@@ -760,12 +779,12 @@ exports.generateOTP = async (req, res) => {
       </div>`
     );
 
-    res.json({ message: 'OTP sent to your email' });
+    res.json({ message: "OTP sent to your email" });
   } catch (err) {
-    console.error('OTP Generation Error:', err);
-    res.status(500).json({ 
-      message: 'Failed to send OTP', 
-      error: process.env.NODE_ENV === 'development' ? err.message : null
+    console.error("OTP Generation Error:", err);
+    res.status(500).json({
+      message: "Failed to send OTP",
+      error: process.env.NODE_ENV === "development" ? err.message : null,
     });
   }
 };
@@ -819,22 +838,22 @@ exports.generateOTP = async (req, res) => {
 exports.verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    
+
     // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Prevent timing attacks
-      return res.status(404).json({ message: 'User not found' });
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Prevent timing attacks
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Check if OTP exists and is valid
     if (!user.otp || user.otp !== otp) {
-      return res.status(400).json({ message: 'Invalid OTP' });
+      return res.status(400).json({ message: "Invalid OTP" });
     }
 
     // Check if OTP is expired
     if (Date.now() > user.otpExpires) {
-      return res.status(400).json({ message: 'OTP has expired' });
+      return res.status(400).json({ message: "OTP has expired" });
     }
 
     // Clear OTP after successful verification
@@ -846,18 +865,18 @@ exports.verifyOTP = async (req, res) => {
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: "1h" }
     );
 
-    res.json({ 
-      message: 'OTP verified successfully',
-      accessToken: token
+    res.json({
+      message: "OTP verified successfully",
+      accessToken: token,
     });
   } catch (err) {
-    console.error('OTP Verification Error:', err);
-    res.status(500).json({ 
-      message: 'Failed to verify OTP',
-      error: process.env.NODE_ENV === 'development' ? err.message : null
+    console.error("OTP Verification Error:", err);
+    res.status(500).json({
+      message: "Failed to verify OTP",
+      error: process.env.NODE_ENV === "development" ? err.message : null,
     });
   }
 };
@@ -905,7 +924,9 @@ exports.logout = async (req, res) => {
 
     if (user && refreshToken) {
       // Remove the specific refresh token
-      user.refreshTokens = user.refreshTokens.filter(token => token !== refreshToken);
+      user.refreshTokens = user.refreshTokens.filter(
+        (token) => token !== refreshToken
+      );
       await user.save();
 
       // Optional: Add token to blacklist if using token invalidation
@@ -913,26 +934,26 @@ exports.logout = async (req, res) => {
     }
 
     // Clear cookies securely
-    res.clearCookie('accessToken', {
+    res.clearCookie("accessToken", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/'
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
     });
 
-    res.clearCookie('refreshToken', {
+    res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/'
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
     });
 
-    res.json({ message: 'Logged out successfully' });
+    res.json({ message: "Logged out successfully" });
   } catch (err) {
-    console.error('Logout Error:', err);
-    res.status(500).json({ 
-      message: 'Logout failed',
-      error: process.env.NODE_ENV === 'development' ? err.message : null
+    console.error("Logout Error:", err);
+    res.status(500).json({
+      message: "Logout failed",
+      error: process.env.NODE_ENV === "development" ? err.message : null,
     });
   }
 };
