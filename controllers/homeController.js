@@ -1,0 +1,196 @@
+// controllers/homeController.js
+const NewsletterSubscriber = require('../models/NewsletterSubscriber');
+
+const { sendEmail } = require('../utils/emailSender');
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Home Page API
+ *   description: Endpoints for home page features
+ */
+
+/**
+ * @swagger
+ * /api/home/subscribe:   
+ *   post:
+ *     summary: Subscribe to newsletter
+ *     tags: [Home Page API]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Successfully subscribed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Thank you for subscribing to our newsletter!
+ *       400:
+ *         description: Invalid input or already subscribed
+ *       500:
+ *         description: Server error
+ */
+exports.subscribeToNewsletter = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Validate email
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
+    // Check if already subscribed
+    const existingSubscriber = await NewsletterSubscriber.findOne({ email });
+    if (existingSubscriber) {
+      return res.status(400).json({ message: 'This email is already subscribed' });
+    }
+
+    // Create new subscriber
+    const subscriber = new NewsletterSubscriber({ email });
+    await subscriber.save();
+
+    // Send confirmation email
+    await sendEmail({
+      to: email,
+      subject: 'Thanks for Subscribing to ATIGS Network',
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>Welcome to ATIGS Network Updates</h2>
+          <p>You've successfully subscribed to our newsletter.</p>
+          <p>You'll now receive the latest trade news, market updates, and industry insights.</p>
+          <p>If you didn't request this subscription, please ignore this email.</p>
+        </div>
+      `
+    });
+
+    res.status(200).json({ message: 'Thank you for subscribing to our newsletter!' });
+  } catch (error) {
+    console.error('Newsletter subscription error:', error);
+    res.status(500).json({ message: 'Failed to process subscription' });
+  }
+};
+
+
+
+
+// controllers/homeController.js
+const ContactMessage = require('../models/ContactMessage');
+
+/**
+ * @swagger
+ * /api/home/contact:
+ *   post:
+ *     summary: Submit contact form
+ *     tags: [Home Page API]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - message
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: John Doe
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               message:
+ *                 type: string
+ *                 example: I have questions about membership
+ *     responses:
+ *       200:
+ *         description: Message received successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Thank you for your message. We'll get back to you soon.
+ *       400:
+ *         description: Invalid input
+ *       500:
+ *         description: Server error
+ */
+exports.submitContactForm = async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+
+    // Validate input
+    if (!name || !email || !message) {
+      return res.status(400).json({ message: 'Please fill all required fields' });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
+    // Save contact message
+    const contactMessage = new ContactMessage({
+      name,
+      email,
+      message,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+    await contactMessage.save();
+
+    // Send email to support
+    await sendEmail({
+      to: process.env.SUPPORT_EMAIL || 'support@atigsnetwork.org',
+      subject: 'New Contact Form Submission',
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>New Contact Message</h2>
+          <p><strong>From:</strong> ${name} (${email})</p>
+          <p><strong>Message:</strong></p>
+          <p>${message}</p>
+          <p><strong>Received:</strong> ${new Date().toLocaleString()}</p>
+        </div>
+      `
+    });
+
+    // Send confirmation to user
+    await sendEmail({
+      to: email,
+      subject: 'Thank You for Contacting ATIGS Network',
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>We've Received Your Message</h2>
+          <p>Thank you for reaching out to ATIGS Network. We've received your message and our team will get back to you soon.</p>
+          <p><strong>Your message:</strong></p>
+          <p>${message}</p>
+          <p>For urgent inquiries, you can call us at +233 (853) 123-457 during business hours.</p>
+        </div>
+      `
+    });
+
+    res.status(200).json({ message: 'Thank you for your message. We\'ll get back to you soon.' });
+  } catch (error) {
+    console.error('Contact form error:', error);
+    res.status(500).json({ message: 'Failed to submit contact form' });
+  }
+};

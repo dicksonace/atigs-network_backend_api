@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
+const homeRoutes = require('./routes/homeRoutes');
 const cors = require('cors');
 
 
@@ -55,6 +56,7 @@ connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/home', homeRoutes);
 // app.use('/api/membership', membershipRoutes);
 
 // Health check endpoint

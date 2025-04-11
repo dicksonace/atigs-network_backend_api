@@ -37,6 +37,7 @@ const sendEmail = async (options) => {
 };
 
 module.exports = {
+ sendEmail,
   sendVerificationEmail: async (user, verificationUrl) => {
     return sendEmail({
       to: user.email,
