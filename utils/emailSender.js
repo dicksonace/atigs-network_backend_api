@@ -1,4 +1,8 @@
 // utils/emailSender.js
+
+const path = require('path');
+const fs = require('fs');
+
 const nodemailer = require('nodemailer');
 const { verificationEmail, passwordResetEmail, loginNotificationEmail, otpEmail, emailVerified } = require('./emailTemplates');
 
