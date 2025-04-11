@@ -1,8 +1,7 @@
 // controllers/homeController.js
 const NewsletterSubscriber = require('../models/NewsletterSubscriber');
-
+const ContactMessage = require('../models/ContactMessage');
 const { sendEmail } = require('../utils/emailSender');
-
 
 /**
  * @swagger
@@ -65,16 +64,21 @@ exports.subscribeToNewsletter = async (req, res) => {
     const subscriber = new NewsletterSubscriber({ email });
     await subscriber.save();
 
-    // Send confirmation email
+    // Send confirmation email with logo at top
     await sendEmail({
       to: email,
       subject: 'Thanks for Subscribing to ATIGS Network',
       html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-          <h2>Welcome to ATIGS Network Updates</h2>
-          <p>You've successfully subscribed to our newsletter.</p>
-          <p>You'll now receive the latest trade news, market updates, and industry insights.</p>
-          <p>If you didn't request this subscription, please ignore this email.</p>
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: 0 auto;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="https://www.atigsnetwork.org/logo.png" alt="ATIGS Network Logo" style="max-width: 200px; height: auto;">
+          </div>
+          <h2 style="color: #2c3e50; text-align: center;">Welcome to ATIGS Network Updates</h2>
+          <p style="text-align: center;">You've successfully subscribed to our newsletter.</p>
+          <p style="text-align: center;">You'll now receive the latest trade news, market updates, and industry insights.</p>
+          <p style="text-align: center; font-size: 0.9em; color: #7f8c8d;">
+            If you didn't request this subscription, please ignore this email.
+          </p>
         </div>
       `
     });
@@ -85,12 +89,6 @@ exports.subscribeToNewsletter = async (req, res) => {
     res.status(500).json({ message: 'Failed to process subscription' });
   }
 };
-
-
-
-
-// controllers/homeController.js
-const ContactMessage = require('../models/ContactMessage');
 
 /**
  * @swagger
@@ -158,34 +156,46 @@ exports.submitContactForm = async (req, res) => {
     });
     await contactMessage.save();
 
+    // Email template with logo
+    const emailTemplate = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="https://www.atigsnetwork.org/logo1.png" alt="ATIGS Network Logo" style="max-width: 200px; height: auto;">
+        </div>
+        <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px;">
+          {{CONTENT}}
+        </div>
+        <p style="text-align: center; font-size: 0.8em; color: #7f8c8d; margin-top: 20px;">
+          ATIGS Network &copy; ${new Date().getFullYear()}
+        </p>
+      </div>
+    `;
+
     // Send email to support
     await sendEmail({
       to: process.env.SUPPORT_EMAIL || 'support@atigsnetwork.org',
       subject: 'New Contact Form Submission',
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-          <h2>New Contact Message</h2>
-          <p><strong>From:</strong> ${name} (${email})</p>
-          <p><strong>Message:</strong></p>
-          <p>${message}</p>
-          <p><strong>Received:</strong> ${new Date().toLocaleString()}</p>
-        </div>
-      `
+      html: emailTemplate.replace('{{CONTENT}}', `
+        <h2 style="color: #2c3e50;">New Contact Message</h2>
+        <p><strong>From:</strong> ${name} (${email})</p>
+        <p><strong>Message:</strong></p>
+        <p>${message}</p>
+        <p><strong>Received:</strong> ${new Date().toLocaleString()}</p>
+        <p><strong>IP Address:</strong> ${req.ip}</p>
+      `)
     });
 
     // Send confirmation to user
     await sendEmail({
       to: email,
       subject: 'Thank You for Contacting ATIGS Network',
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-          <h2>We've Received Your Message</h2>
-          <p>Thank you for reaching out to ATIGS Network. We've received your message and our team will get back to you soon.</p>
-          <p><strong>Your message:</strong></p>
-          <p>${message}</p>
-          <p>For urgent inquiries, you can call us at +233 (853) 123-457 during business hours.</p>
-        </div>
-      `
+      html: emailTemplate.replace('{{CONTENT}}', `
+        <h2 style="color: #2c3e50;">We've Received Your Message</h2>
+        <p>Thank you for reaching out to ATIGS Network. We've received your message and our team will get back to you soon.</p>
+        <p><strong>Your message:</strong></p>
+        <p>${message}</p>
+        <p>For urgent inquiries, you can call us at +233 (853) 123-457 during business hours.</p>
+      `)
     });
 
     res.status(200).json({ message: 'Thank you for your message. We\'ll get back to you soon.' });
