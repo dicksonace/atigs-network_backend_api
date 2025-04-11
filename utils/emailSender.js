@@ -23,7 +23,7 @@ const sendEmail = async (options) => {
       html: options.html,
       attachments: [{
         filename: 'logo.png',
-        path: path.join(__dirname, '../public/images/logo.jpg'),
+        path: path.join(__dirname, '../public/images/logo1.jpg'),
         cid: 'companylogo'
       }]
     };
