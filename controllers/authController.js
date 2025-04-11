@@ -6,6 +6,15 @@ const { body, validationResult } = require('express-validator');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 
+const { 
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendLoginNotification,
+  sendOTPEmail,
+  sendEmailVerified
+} = require('../utils/emailSender');
+
+
 // Email transporter setup
 const transporter = nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE,
@@ -231,12 +240,14 @@ exports.register = async (req, res) => {
 
     // 5. Send verification email
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
-    await sendEmail(
-      user.email,
-      'Welcome to ATIGS Network - Verify Your Email',
-      `Please verify your email by clicking this link: ${verificationUrl}`,
-      verificationEmailTemplate(user.firstName, verificationUrl)
-    );
+    // await sendEmail(
+    //   user.email,
+    //   'Welcome to ATIGS Network - Verify Your Email',
+    //   `Please verify your email by clicking this link: ${verificationUrl}`,
+    //   verificationEmailTemplate(user.firstName, verificationUrl)
+    // );
+
+    await sendVerificationEmail(user, verificationUrl);
 
     // 6. Omit sensitive data in response
     const userResponse = {
