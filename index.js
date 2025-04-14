@@ -11,8 +11,14 @@ const swaggerDocs = require('./swagger');
 
 const app = express();
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'https://astonishing-chimera-f20edb.netlify.app',
+  'http://localhost:5173'
+];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL,
+  origin: allowedOrigins,
   credentials: true,
   optionsSuccessStatus: 200 // For legacy browser support
 };
