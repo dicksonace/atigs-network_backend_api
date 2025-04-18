@@ -306,7 +306,7 @@ exports.joinNetwork = async (req, res) => {
           <div style="text-align: center; margin-bottom: 20px;">
             <img src="https://www.atigsnetwork.org/logo.png" alt="ATIGS Network Logo" style="max-width: 200px; height: auto;">
           </div>
-          <h2 style="color: #2c3e50; text-align: center;">Welcome ${fullName} to ATIGS Network Updates</h2>
+          <h2 style="color: #2c3e50; text-align: center;">Welcome, ${fullName}, to the ATIGS Network Updates</h2>
           <p style="text-align: center;">You've successfully joined our network.</p>
           <p style="text-align: center;">You'll now receive the latest trade news, market updates, and industry insights.</p>
           <p style="text-align: center; font-size: 0.9em; color: #7f8c8d;">
