@@ -7,7 +7,7 @@ const homeController = require('../controllers/homeController');
 router.post('/subscribe', homeController.subscribeToNewsletter);
 
 // Newsletter subscription with full name and email
-router.post('/join-newwork', homeController.joinNetwork);
+router.post('/join-network', homeController.joinNetwork);
 
 // Contact form submission
 router.post('/contact', homeController.submitContactForm);
