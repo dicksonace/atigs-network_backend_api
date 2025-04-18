@@ -227,7 +227,7 @@ exports.submitContactForm = async (req, res) => {
 
 /**
  * @swagger
- * /api/home/join Newwork
+ * /api/home/join-network:
  *   post:
  *     summary: SJoin Network with full name and email
  *     tags: [Home Page API]
