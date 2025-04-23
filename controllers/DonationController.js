@@ -1,6 +1,6 @@
 const Donation = require("../models/Donation");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const Paystack = require('@paystack/paystack-sdk');
+const { default: Paystack } = require('@paystack/paystack-sdk');
 const paystack = new Paystack(process.env.PAYSTACK_SECRET_KEY);
 const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
@@ -248,10 +248,9 @@ exports.initializePaystackPayment = async (req, res) => {
             userId: req.user?.id,
             message
           });
-      
-          const response = await paystack.initializeTransaction({
-            amount: amount * 100,
+          const response = await paystack.transaction.initialize({
             email: donorEmail,
+            amount: amount * 100, // Paystack uses kobo (multiply by 100)
             reference,
             metadata: {
               custom_fields: [
@@ -259,26 +258,31 @@ exports.initializePaystackPayment = async (req, res) => {
                   display_name: "Donor Name",
                   variable_name: "donor_name",
                   value: donorName || "Anonymous"
+                },
+                {
+                  display_name: "User ID",
+                  variable_name: "user_id",
+                  value: req.user?.id || "guest"
                 }
               ]
             }
           });
       
           if (!response.status || !response.data.authorization_url) {
-            throw new Error("Failed to initialize payment");
+            throw new Error(response.message || "Failed to initialize payment");
           }
       
-          res.json({ 
-            success: true, 
-            paymentUrl: response.data.authorization_url, 
-            donation 
+          res.json({
+            success: true,
+            paymentUrl: response.data.authorization_url,
+            donation
           });
       
         } catch (err) {
-          res.status(400).json({ 
-            error: err.message,
-            details: process.env.NODE_ENV === "development" ? err.stack : null
-          });
+            res.status(400).json({
+                error: err.message,
+                details: process.env.NODE_ENV === "development" ? err.stack : null
+              });
         }
             
 };
@@ -363,30 +367,30 @@ exports.stripeWebhook = async (req, res) => {
  *         description: Server error
  */
 exports.paystackWebhook = async (req, res) => {
- 
-        try {
-          const event = verifyPaystackWebhook(req);
-          
-          if (event.event === 'charge.success') {
-            await Donation.findOneAndUpdate(
-              { paymentReference: event.data.reference },
-              { status: 'successful' }
-            );
-
-            // After marking donation as successful
-                await sendThankYouEmail({
-                    email: donation.donorEmail,
-                    firstName: donation.donorName
-                }, donation.amount, donation.currency);
-          }
+    try {
+      // Verify it's from Paystack
+      const hash = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
+        .update(JSON.stringify(req.body))
+        .digest('hex');
       
-          res.sendStatus(200);
-        } catch (err) {
-          console.error("Webhook Error:", err);
-          res.status(400).send(`Webhook Error: ${err.message}`);
-        }
-      
-};
+      if (hash !== req.headers['x-paystack-signature']) {
+        return res.status(401).send('Unauthorized');
+      }
+  
+      const event = req.body;
+      if (event.event === 'charge.success') {
+        await Donation.findOneAndUpdate(
+          { paymentReference: event.data.reference },
+          { status: 'successful' }
+        );
+      }
+  
+      return res.sendStatus(200);
+    } catch (err) {
+      console.error('Paystack webhook error:', err);
+      return res.status(400).send('Webhook error');
+    }
+  }
 
 /**
  * @swagger
