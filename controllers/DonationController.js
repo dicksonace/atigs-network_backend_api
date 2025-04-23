@@ -1,10 +1,10 @@
 const Donation = require("../models/Donation");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const { Paystack } = require('paystack-node');
+const Paystack = require('@paystack/paystack-sdk');
 const paystack = new Paystack(process.env.PAYSTACK_SECRET_KEY);
 const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
-const { verifyStripeWebhook, verifyPaystackWebhook } = require("../middlewares/webhookVerification");
+const { verifyStripeWebhook, verifyPaystackWebhook } = require("../middleware/webhookVerification");
 const { sendThankYouEmail } = require("../utils/emailSender");
 
 /**

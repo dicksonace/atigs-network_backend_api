@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const donationsController = require('../controllers/donationsController');
-const { authenticate } = require('../middlewares/auth');
+const donationsController = require('../controllers/DonationController');
+const { authenticate } = require('../middleware/authMiddleware');
 
 // Public endpoints
 router.post('/stripe/create-intent', donationsController.createStripePaymentIntent);
