@@ -230,7 +230,7 @@ exports.createStripePaymentIntent = async (req, res) => {
 exports.initializePaystackPayment = async (req, res) => {
   
         try {
-          const { amount, donorName, donorEmail, message, currency = "NGN" } = req.body;
+          const { amount, donorName, donorEmail, message, currency = "GHS" } = req.body;
       
           if (!amount || amount < 1) throw new Error("Amount must be at least 1");
           if (!donorEmail || !/^\S+@\S+\.\S+$/.test(donorEmail)) throw new Error("Invalid email");
