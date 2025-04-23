@@ -157,6 +157,34 @@ module.exports = {
     </div>
     
     <p>Thank you for joining ATIGS Network!</p>
-  `, "Email Verified")
+  `, "Email Verified"),
+
+  // Add this new template function to your exports
+  sendThankYouEmail: (name, amount, currency) => baseTemplate(`
+  <h2 style="margin-top: 0;">Thank You for Your Donation!</h2>
+  <p>Dear ${name},</p>
+  
+  <p>We are incredibly grateful for your generous donation of 
+  <strong>${currency} ${amount.toFixed(2)}</strong> to ATIGS Network.</p>
+  
+  <p>Your support helps us continue our mission and make a real difference. 
+  Here's what your contribution enables:</p>
+  
+  <ul>
+    <li>Supporting community initiatives</li>
+    <li>Funding educational programs</li>
+    <li>Enabling technological advancements</li>
+  </ul>
+  
+  <div style="text-align: center; margin: 25px 0;">
+    <a href="${process.env.FRONTEND_URL}/impact" class="button">
+      See Your Impact
+    </a>
+  </div>
+  
+  <p>You'll receive a receipt for your donation in a separate email.</p>
+  
+  <p>With gratitude,<br>The ATIGS Network Team</p>
+`, "Thank You for Your Donation")
 };
 

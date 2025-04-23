@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 
 const nodemailer = require('nodemailer');
-const { verificationEmail, passwordResetEmail, loginNotificationEmail, otpEmail, emailVerified } = require('./emailTemplates');
+const { verificationEmail, passwordResetEmail, loginNotificationEmail, otpEmail, emailVerified, sendThankYouEmail} = require('./emailTemplates');
 
 const transporter = nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE,
@@ -76,5 +76,14 @@ module.exports = {
       subject: 'Welcome to ATIGS Network - Email Verified',
       html: emailVerified(user.firstName)
     });
-  }
+  },
+
+  // Add this new method to your exports
+  sendThankYouEmail: async (user, amount, currency) => {
+  return sendEmail({
+    to: user.email,
+    subject: 'Thank You for Your Donation to ATIGS Network',
+    html: emailTemplates.thankYouEmail(user.firstName, amount, currency)
+  });
+}
 };
