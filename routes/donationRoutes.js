@@ -4,8 +4,12 @@ const donationsController = require('../controllers/DonationController');
 const { authenticate } = require('../middleware/authMiddleware');
 
 // Public endpoints
-router.post('/stripe/create-intent', donationsController.createStripePaymentIntent);
-router.post('/paystack/initialize', donationsController.initializePaystackPayment);
+// router.post('/stripe/create-intent', donationsController.createStripePaymentIntent);
+// router.post('/paystack/initialize', donationsController.initializePaystackPayment);
+
+router.post('/create-checkout-session', donationsController.createCheckoutSession);
+
+
 
 // Webhooks (no auth)
 router.post('/webhook/stripe', 

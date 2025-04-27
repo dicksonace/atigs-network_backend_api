@@ -7,6 +7,12 @@ const crypto = require("crypto");
 const { verifyStripeWebhook, verifyPaystackWebhook } = require("../middleware/webhookVerification");
 const { sendThankYouEmail } = require("../utils/emailSender");
 
+
+
+// const stripePay = require('stripe');
+// const stripe = new stripePay.Stripe('sk_test_51RB199LLxC65e05f5Z7yFzIqugClB7pXbBqODiFjzSfYINllH1Sz4IjFsnfzD6zIrkcGEcxJjo3hssS49IyDMG3G0009lFfo0p', {
+//   apiVersion: '2025-03-31.basil',
+// });
 /**
  * @swagger
  * tags:
@@ -73,219 +79,299 @@ const { sendThankYouEmail } = require("../utils/emailSender");
  *           example: Amount must be at least 1
  */
 
-/**
- * @swagger
- * /api/donations/stripe/create-intent:
- *   post:
- *     summary: Create a Stripe payment intent
- *     tags: [Donations]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - amount
- *               - donorEmail
- *             properties:
- *               amount:
- *                 type: number
- *                 minimum: 0.5
- *                 example: 25.50
- *               currency:
- *                 type: string
- *                 default: usd
- *                 example: usd
- *               donorName:
- *                 type: string
- *                 example: John Doe
- *               donorEmail:
- *                 type: string
- *                 format: email
- *                 example: john@example.com
- *               message:
- *                 type: string
- *                 example: Keep up the good work!
- *     responses:
- *       200:
- *         description: Payment intent created
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 clientSecret:
- *                   type: string
- *                   example: pi_1JmZ7tKZvQl4gXxX_secret_xyz
- *                 donation:
- *                   $ref: '#/components/schemas/Donation'
- *       400:
- *         description: Validation error
- *         $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         description: Server error
- *         $ref: '#/components/schemas/ErrorResponse'
- */
-exports.createStripePaymentIntent = async (req, res) => {
-        try {
-          const { amount, currency = "usd", donorName, donorEmail, message } = req.body;
+// /**
+//  * @swagger
+//  * /api/donations/stripe/create-intent:
+//  *   post:
+//  *     summary: Create a Stripe payment intent
+//  *     tags: [Donations]
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             required:
+//  *               - amount
+//  *               - donorEmail
+//  *             properties:
+//  *               amount:
+//  *                 type: number
+//  *                 minimum: 0.5
+//  *                 example: 25.50
+//  *               currency:
+//  *                 type: string
+//  *                 default: usd
+//  *                 example: usd
+//  *               donorName:
+//  *                 type: string
+//  *                 example: John Doe
+//  *               donorEmail:
+//  *                 type: string
+//  *                 format: email
+//  *                 example: john@example.com
+//  *               message:
+//  *                 type: string
+//  *                 example: Keep up the good work!
+//  *     responses:
+//  *       200:
+//  *         description: Payment intent created
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 success:
+//  *                   type: boolean
+//  *                   example: true
+//  *                 clientSecret:
+//  *                   type: string
+//  *                   example: pi_1JmZ7tKZvQl4gXxX_secret_xyz
+//  *                 donation:
+//  *                   $ref: '#/components/schemas/Donation'
+//  *       400:
+//  *         description: Validation error
+//  *         $ref: '#/components/schemas/ErrorResponse'
+//  *       500:
+//  *         description: Server error
+//  *         $ref: '#/components/schemas/ErrorResponse'
+//  */
+// exports.createStripePaymentIntent = async (req, res) => {
+//         try {
+//           const { amount, currency = "usd", donorName, donorEmail, message } = req.body;
       
-          // Validate input
-          if (!amount || amount < 0.5) throw new Error("Amount must be at least 0.50");
-          if (!donorEmail || !/^\S+@\S+\.\S+$/.test(donorEmail)) throw new Error("Invalid email");
+//           // Validate input
+//           if (!amount || amount < 0.5) throw new Error("Amount must be at least 0.50");
+//           if (!donorEmail || !/^\S+@\S+\.\S+$/.test(donorEmail)) throw new Error("Invalid email");
       
-          const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(amount * 100),
-            currency: currency.toLowerCase(),
-            metadata: {
-              donorName: donorName || "Anonymous",
-              donorEmail,
-              userId: req.user?.id || "guest",
-              message: message || ""
-            }
-          });
+//           const paymentIntent = await stripe.paymentIntents.create({
+//             amount: Math.round(amount * 100),
+//             currency: currency.toLowerCase(),
+//             metadata: {
+//               donorName: donorName || "Anonymous",
+//               donorEmail,
+//               userId: req.user?.id || "guest",
+//               message: message || ""
+//             }
+//           });
       
-          const donation = await Donation.create({
-            amount,
-            currency,
-            donorName: donorName || "Anonymous",
-            donorEmail,
-            paymentGateway: "stripe",
-            paymentReference: paymentIntent.id,
-            status: "pending",
-            userId: req.user?.id,
-            message
-          });
+//           const donation = await Donation.create({
+//             amount,
+//             currency,
+//             donorName: donorName || "Anonymous",
+//             donorEmail,
+//             paymentGateway: "stripe",
+//             paymentReference: paymentIntent.id,
+//             status: "pending",
+//             userId: req.user?.id,
+//             message
+//           });
       
-          res.json({ success: true, clientSecret: paymentIntent.client_secret, donation });
+//           res.json({ success: true, clientSecret: paymentIntent.client_secret, donation });
       
-        } catch (err) {
-          res.status(400).json({ 
-            error: err.message,
-            details: process.env.NODE_ENV === "development" ? err.stack : null
-          });
-        }
+//         } catch (err) {
+//           res.status(400).json({ 
+//             error: err.message,
+//             details: process.env.NODE_ENV === "development" ? err.stack : null
+//           });
+//         }
             
-};
+// };
+
+// /**
+//  * @swagger
+//  * /api/donations/paystack/initialize:
+//  *   post:
+//  *     summary: Initialize Paystack payment
+//  *     tags: [Donations]
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             required:
+//  *               - amount
+//  *               - donorEmail
+//  *             properties:
+//  *               amount:
+//  *                 type: number
+//  *                 minimum: 1
+//  *                 example: 5000
+//  *               currency:
+//  *                 type: string
+//  *                 default: NGN
+//  *                 example: NGN
+//  *               donorName:
+//  *                 type: string
+//  *                 example: Jane Smith
+//  *               donorEmail:
+//  *                 type: string
+//  *                 format: email
+//  *                 example: jane@example.com
+//  *               message:
+//  *                 type: string
+//  *                 example: Supporting your cause
+//  *     responses:
+//  *       200:
+//  *         description: Payment initialized
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 success:
+//  *                   type: boolean
+//  *                   example: true
+//  *                 paymentUrl:
+//  *                   type: string
+//  *                   example: https://paystack.com/pay/xyz123
+//  *                 donation:
+//  *                   $ref: '#/components/schemas/Donation'
+//  *       400:
+//  *         $ref: '#/components/schemas/ErrorResponse'
+//  *       500:
+//  *         $ref: '#/components/schemas/ErrorResponse'
+//  */
+// exports.initializePaystackPayment = async (req, res) => {
+  
+//         try {
+//           const { amount, donorName, donorEmail, message, currency = "GHS" } = req.body;
+      
+//           if (!amount || amount < 1) throw new Error("Amount must be at least 1");
+//           if (!donorEmail || !/^\S+@\S+\.\S+$/.test(donorEmail)) throw new Error("Invalid email");
+      
+//           const reference = `DON-${uuidv4()}`;
+      
+//           const donation = await Donation.create({
+//             amount,
+//             currency,
+//             donorName: donorName || "Anonymous",
+//             donorEmail,
+//             paymentGateway: "paystack",
+//             paymentReference: reference,
+//             status: "pending",
+//             userId: req.user?.id,
+//             message
+//           });
+//           const response = await paystack.transaction.initialize({
+//             email: donorEmail,
+//             amount: amount * 100, // Paystack uses kobo (multiply by 100)
+//             reference,
+//             metadata: {
+//               custom_fields: [
+//                 {
+//                   display_name: "Donor Name",
+//                   variable_name: "donor_name",
+//                   value: donorName || "Anonymous"
+//                 },
+//                 {
+//                   display_name: "User ID",
+//                   variable_name: "user_id",
+//                   value: req.user?.id || "guest"
+//                 }
+//               ]
+//             }
+//           });
+      
+//           if (!response.status || !response.data.authorization_url) {
+//             throw new Error(response.message || "Failed to initialize payment");
+//           }
+      
+//           res.json({
+//             success: true,
+//             paymentUrl: response.data.authorization_url,
+//             donation
+//           });
+      
+//         } catch (err) {
+//             res.status(400).json({
+//                 error: err.message,
+//                 details: process.env.NODE_ENV === "development" ? err.stack : null
+//               });
+//         }
+            
+// };
+
+
+
+
+
 
 /**
  * @swagger
- * /api/donations/paystack/initialize:
+ * /api/donations/create-checkout-session:
  *   post:
- *     summary: Initialize Paystack payment
  *     tags: [Donations]
+ *     description: Create a Checkout Session for a Customer
+ *     summary: Create a Checkout Session
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - amount
- *               - donorEmail
  *             properties:
- *               amount:
- *                 type: number
- *                 minimum: 1
- *                 example: 5000
- *               currency:
+ *               customer_email:
  *                 type: string
- *                 default: NGN
- *                 example: NGN
- *               donorName:
- *                 type: string
- *                 example: Jane Smith
- *               donorEmail:
- *                 type: string
- *                 format: email
- *                 example: jane@example.com
- *               message:
- *                 type: string
- *                 example: Supporting your cause
+ *                 description: The email address of the customer.
  *     responses:
  *       200:
- *         description: Payment initialized
+ *         description: Successful operation
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 paymentUrl:
+ *                 checkoutSessionClientSecret:
  *                   type: string
- *                   example: https://paystack.com/pay/xyz123
- *                 donation:
- *                   $ref: '#/components/schemas/Donation'
- *       400:
- *         $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         $ref: '#/components/schemas/ErrorResponse'
+ *                   description: The client secret for the Checkout Session.
+ *  
  */
-exports.initializePaystackPayment = async (req, res) => {
-  
-        try {
-          const { amount, donorName, donorEmail, message, currency = "GHS" } = req.body;
+
+exports.createCheckoutSession = async (req, res) => {
+  try {
+    const { customer_email } = req.body;
+
+    // if (!customer_email) {
+    //   return res.status(400).json({ error: 'Customer email is required' });
+    // }
+
+    const session = await stripe.checkout.sessions.create({
+      customer_email,
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'T-shirt',
+            },
+            unit_amount: 2000,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      ui_mode: 'custom',
+      return_url: process.env.CLIENT_SUCCESS_URL || 'http://localhost:5173/'
+    });
+
+    res.json({
+      clientSecret: session.client_secret,
+      sessionId: session.id
+    });
       
-          if (!amount || amount < 1) throw new Error("Amount must be at least 1");
-          if (!donorEmail || !/^\S+@\S+\.\S+$/.test(donorEmail)) throw new Error("Invalid email");
-      
-          const reference = `DON-${uuidv4()}`;
-      
-          const donation = await Donation.create({
-            amount,
-            currency,
-            donorName: donorName || "Anonymous",
-            donorEmail,
-            paymentGateway: "paystack",
-            paymentReference: reference,
-            status: "pending",
-            userId: req.user?.id,
-            message
-          });
-          const response = await paystack.transaction.initialize({
-            email: donorEmail,
-            amount: amount * 100, // Paystack uses kobo (multiply by 100)
-            reference,
-            metadata: {
-              custom_fields: [
-                {
-                  display_name: "Donor Name",
-                  variable_name: "donor_name",
-                  value: donorName || "Anonymous"
-                },
-                {
-                  display_name: "User ID",
-                  variable_name: "user_id",
-                  value: req.user?.id || "guest"
-                }
-              ]
-            }
-          });
-      
-          if (!response.status || !response.data.authorization_url) {
-            throw new Error(response.message || "Failed to initialize payment");
-          }
-      
-          res.json({
-            success: true,
-            paymentUrl: response.data.authorization_url,
-            donation
-          });
-      
-        } catch (err) {
-            res.status(400).json({
-                error: err.message,
-                details: process.env.NODE_ENV === "development" ? err.stack : null
-              });
-        }
-            
-};
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({ 
+      error: 'Failed to create checkout session',
+      details: error.message 
+    });
+  }
+}
+
+
+
 
 /**
  * @swagger
