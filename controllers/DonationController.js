@@ -315,6 +315,9 @@ const { sendThankYouEmail } = require("../utils/emailSender");
  *               customer_email:
  *                 type: string
  *                 description: The email address of the customer.
+ *                amount:
+      *           type: number
+      *           example: 50.00
  *     responses:
  *       200:
  *         description: Successful operation
@@ -326,12 +329,13 @@ const { sendThankYouEmail } = require("../utils/emailSender");
  *                 checkoutSessionClientSecret:
  *                   type: string
  *                   description: The client secret for the Checkout Session.
+ *                  
  *  
  */
 
 exports.createCheckoutSession = async (req, res) => {
   try {
-    const { customer_email } = req.body;
+    const { customer_email, amount } = req.body;
 
     // if (!customer_email) {
     //   return res.status(400).json({ error: 'Customer email is required' });
@@ -346,7 +350,7 @@ exports.createCheckoutSession = async (req, res) => {
             product_data: {
               name: 'T-shirt',
             },
-            unit_amount: 2000,
+            unit_amount: amount * 100, 
           },
           quantity: 1,
         },
