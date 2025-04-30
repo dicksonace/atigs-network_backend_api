@@ -15,7 +15,7 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'https://astonishing-chimera-f20edb.netlify.app',
-  'http://localhost:5173'
+  'http://localhost:5173',
 ];
 
 const corsOptions = {

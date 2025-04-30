@@ -351,7 +351,7 @@ exports.createCheckoutSession = async (req, res) => {
     // }
 
     const session = await stripe.checkout.sessions.create({
-      customer_email,
+      customer_email: customer_email ?? undefined,
       line_items: [
         {
           price_data: {
