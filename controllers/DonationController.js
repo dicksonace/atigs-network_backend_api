@@ -298,6 +298,7 @@ const { sendThankYouEmail } = require("../utils/emailSender");
 
 
 
+
 /**
  * @swagger
  * /api/donations/create-checkout-session:
@@ -315,9 +316,12 @@ const { sendThankYouEmail } = require("../utils/emailSender");
  *               customer_email:
  *                 type: string
  *                 description: The email address of the customer.
- *                amount:
-      *           type: number
-      *           example: 50.00
+ *                 example: customer@example.com
+ *               amount:
+ *                 type: number
+ *                 description: The donation amount in USD.
+ *                 example: 50.00
+ *                 minimum: 0.01
  *     responses:
  *       200:
  *         description: Successful operation
@@ -326,11 +330,16 @@ const { sendThankYouEmail } = require("../utils/emailSender");
  *             schema:
  *               type: object
  *               properties:
- *                 checkoutSessionClientSecret:
+ *                 clientSecret:
  *                   type: string
  *                   description: The client secret for the Checkout Session.
- *                  
- *  
+ *                 sessionId:
+ *                   type: string
+ *                   description: The ID of the Checkout Session.
+ *       400:
+ *         description: Bad request (e.g., missing required fields)
+ *       500:
+ *         description: Internal server error
  */
 
 exports.createCheckoutSession = async (req, res) => {
