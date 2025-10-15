@@ -7,7 +7,7 @@ const options = {
     info: {
       title: 'API Documentation',
       version: '1.0.0',
-      description: 'User Authentication API',
+      description: 'ATIGS Network API - User Authentication and Code Verification',
     },
     components: {
       securitySchemes: {

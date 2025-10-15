@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const homeRoutes = require('./routes/homeRoutes');
 const donationRoutes = require('./routes/donationRoutes');
+const codeRoutes = require('./routes/codeRoutes');
 const cors = require('cors');
 
 
@@ -65,6 +66,7 @@ connectDB();
 app.use('/api/auth', authRoutes);
 app.use('/api/home', homeRoutes);
 app.use('/api/donations', donationRoutes);
+app.use('/api/code', codeRoutes);
 
 // app.use('/api/membership', membershipRoutes);
 
