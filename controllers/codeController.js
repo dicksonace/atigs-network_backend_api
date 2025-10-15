@@ -90,7 +90,7 @@ exports.verifyCode = async (req, res) => {
     }
 
     // Hardcoded codes array - update this with actual codes
-    const validCodes = ["123456", "78094"];
+    const validCodes = ["012025"];
 
     // Check if the provided code matches any in the array
     if (validCodes.includes(code)) {
