@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate, authorize } = require('../middleware/authMiddleware');
 const adminController = require('../controllers/adminController');
 
 /**
@@ -16,8 +15,6 @@ const adminController = require('../controllers/adminController');
  *   get:
  *     summary: Get all users
  *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -49,15 +46,9 @@ const adminController = require('../controllers/adminController');
  *                   type: integer
  *                 totalPages:
  *                   type: integer
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden - Admin only
  */
 router.get(
   '/users',
-  authenticate,
-  authorize('admin'),
   adminController.getAllUsers
 );
 
@@ -67,8 +58,6 @@ router.get(
  *   delete:
  *     summary: Delete a user/member by ID
  *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -88,18 +77,12 @@ router.get(
  *                   type: string
  *                   example: User deleted successfully
  *       400:
- *         description: Cannot delete your own account
+ *         description: Invalid user ID
  *       404:
  *         description: User not found
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden - Admin only
  */
 router.delete(
   '/users/:id',
-  authenticate,
-  authorize('admin'),
   adminController.deleteUser
 );
 

@@ -42,11 +42,6 @@ exports.deleteUser = async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    // Prevent admin from deleting themselves
-    if (id === req.userId.toString()) {
-      return res.status(400).json({ message: 'Cannot delete your own account' });
-    }
-
     const user = await User.findByIdAndDelete(id);
 
     if (!user) {
