@@ -6,6 +6,7 @@ const authRoutes = require('./routes/auth');
 const homeRoutes = require('./routes/homeRoutes');
 const donationRoutes = require('./routes/donationRoutes');
 const codeRoutes = require('./routes/codeRoutes');
+const adminRoutes = require('./routes/admin');
 const cors = require('cors');
 
 
@@ -67,6 +68,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/home', homeRoutes);
 app.use('/api/donations', donationRoutes);
 app.use('/api/code', codeRoutes);
+app.use('/api/admin', adminRoutes);
 
 // app.use('/api/membership', membershipRoutes);
 
