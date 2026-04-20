@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const mediaAlbumController = require('../controllers/mediaAlbumController');
+const uploadController = require('../controllers/uploadController');
+const { authenticate, authorize } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -49,6 +52,8 @@ const adminController = require('../controllers/adminController');
  */
 router.get(
   '/users',
+  authenticate,
+  authorize('admin'),
   adminController.getAllUsers
 );
 
@@ -83,7 +88,128 @@ router.get(
  */
 router.delete(
   '/users/:id',
+  authenticate,
+  authorize('admin'),
   adminController.deleteUser
+);
+
+router.get(
+  '/content/:type',
+  authenticate,
+  authorize('admin'),
+  adminController.getContentByType
+);
+
+router.post(
+  '/content/:type',
+  authenticate,
+  authorize('admin'),
+  adminController.createContent
+);
+
+router.put(
+  '/content/:type/:id',
+  authenticate,
+  authorize('admin'),
+  adminController.updateContent
+);
+
+router.delete(
+  '/content/:type/:id',
+  authenticate,
+  authorize('admin'),
+  adminController.deleteContent
+);
+
+router.get(
+  '/payments/overview',
+  authenticate,
+  authorize('admin'),
+  adminController.getAdminPaymentsOverview
+);
+
+router.get(
+  '/members',
+  authenticate,
+  authorize('admin'),
+  adminController.getMembersList
+);
+
+router.get(
+  '/settings/exchange-rate',
+  authenticate,
+  authorize('admin'),
+  adminController.getExchangeRateSetting
+);
+
+router.put(
+  '/settings/exchange-rate',
+  authenticate,
+  authorize('admin'),
+  adminController.updateExchangeRateSetting
+);
+
+router.get(
+  '/membership-plans',
+  authenticate,
+  authorize('admin'),
+  adminController.getMembershipPlansAdmin
+);
+
+router.post(
+  '/membership-plans',
+  authenticate,
+  authorize('admin'),
+  adminController.createMembershipPlanAdmin
+);
+
+router.put(
+  '/membership-plans/:id',
+  authenticate,
+  authorize('admin'),
+  adminController.updateMembershipPlanAdmin
+);
+
+router.delete(
+  '/membership-plans/:id',
+  authenticate,
+  authorize('admin'),
+  adminController.deleteMembershipPlanAdmin
+);
+
+router.get(
+  '/media-albums',
+  authenticate,
+  authorize('admin'),
+  mediaAlbumController.getMediaAlbumsAdmin
+);
+
+router.post(
+  '/media-albums',
+  authenticate,
+  authorize('admin'),
+  mediaAlbumController.createMediaAlbum
+);
+
+router.put(
+  '/media-albums/:id',
+  authenticate,
+  authorize('admin'),
+  mediaAlbumController.updateMediaAlbum
+);
+
+router.delete(
+  '/media-albums/:id',
+  authenticate,
+  authorize('admin'),
+  mediaAlbumController.deleteMediaAlbum
+);
+
+router.post(
+  '/uploads/image',
+  authenticate,
+  authorize('admin'),
+  ...uploadController.uploadContentImage
 );
 
 module.exports = router;

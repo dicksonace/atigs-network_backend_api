@@ -12,4 +12,10 @@ router.post('/join-network', homeController.joinNetwork);
 // Contact form submission
 router.post('/contact', homeController.submitContactForm);
 
+// Published CMS content (events, careers, press releases, trade insights)
+router.get('/content/:type', homeController.getPublishedContent);
+
+// Media gallery (albums)
+router.get('/media-gallery', homeController.getPublishedMediaAlbums);
+
 module.exports = router;

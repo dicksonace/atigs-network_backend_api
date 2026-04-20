@@ -1,7 +1,6 @@
 const express = require('express');
-// const { authenticate, authorize } = require('../middleware/auth');
-// const User = require('../models/User');
 const router = express.Router();
+const membershipController = require('../controllers/membershipController');
 
 // // Upgrade to premium (example)
 // router.post('/upgrade', 
@@ -31,5 +30,12 @@ const router = express.Router();
 //     res.json({ userCount });
 //   }
 // );
+
+router.get('/plans', membershipController.getMembershipPlans);
+router.get('/exchange-rate', membershipController.getExchangeRate);
+router.post('/guest/send-otp', membershipController.sendGuestMembershipOtp);
+router.post('/guest/verify-otp', membershipController.verifyGuestMembershipOtp);
+router.post('/subscribe', membershipController.initializeMembershipPayment);
+router.get('/verify/:reference', membershipController.verifyMembershipPayment);
 
 module.exports = router;

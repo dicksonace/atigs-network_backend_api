@@ -7,17 +7,21 @@ const nodemailer = require('nodemailer');
 const { verificationEmail, passwordResetEmail, loginNotificationEmail, otpEmail, emailVerified, sendThankYouEmail} = require('./emailTemplates');
 
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE,
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: Number(process.env.EMAIL_PORT || 587),
+  secure: String(process.env.EMAIL_SECURE || 'false').toLowerCase() === 'true',
   auth: {
-    user: process.env.EMAIL_USERNAME,
-    pass: process.env.EMAIL_PASSWORD
-  }
+    user: process.env.EMAIL_USER || process.env.EMAIL_USERNAME,
+    pass: process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD,
+  },
 });
 
 const sendEmail = async (options) => {
   try {
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: process.env.EMAIL_FROM_NAME
+        ? `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM}>`
+        : process.env.EMAIL_FROM,
       to: options.to,
       subject: options.subject,
       html: options.html,

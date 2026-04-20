@@ -3,16 +3,17 @@ const User = require('../models/User');
 
 exports.authenticate = async (req, res, next) => {
   try {
-    // Get token from header or cookie
-    let token = req.header('Authorization') || req.cookies.accessToken;
+    // Get token from Authorization header or cookie, safely.
+    const authHeader = req.get('Authorization') || req.get('authorization');
+    let token = authHeader || req.cookies?.accessToken;
     
     if (!token) {
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
     // Remove 'Bearer ' if present
-    if (token.startsWith('Bearer ')) {
-      token = token.slice(7, token.length).trimLeft();
+    if (typeof token === 'string' && token.startsWith('Bearer ')) {
+      token = token.slice(7).trim();
     }
  
     // Verify token

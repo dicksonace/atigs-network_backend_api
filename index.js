@@ -2,11 +2,13 @@ require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
+const path = require('path');
 const authRoutes = require('./routes/auth');
 const homeRoutes = require('./routes/homeRoutes');
 const donationRoutes = require('./routes/donationRoutes');
 const codeRoutes = require('./routes/codeRoutes');
 const adminRoutes = require('./routes/admin');
+const membershipRoutes = require('./routes/membership');
 const cors = require('cors');
 
 
@@ -18,10 +20,16 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
   'https://astonishing-chimera-f20edb.netlify.app',
   'http://localhost:5173',
-];
+  'http://127.0.0.1:5173',
+].filter(Boolean);
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
   credentials: true,
   optionsSuccessStatus: 200 // For legacy browser support
 };
@@ -32,6 +40,8 @@ swaggerDocs(app);
 
 // Middleware
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Enhanced MongoDB connection
 const connectDB = async () => {
@@ -69,8 +79,7 @@ app.use('/api/home', homeRoutes);
 app.use('/api/donations', donationRoutes);
 app.use('/api/code', codeRoutes);
 app.use('/api/admin', adminRoutes);
-
-// app.use('/api/membership', membershipRoutes);
+app.use('/api/membership', membershipRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

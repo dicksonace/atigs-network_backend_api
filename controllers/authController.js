@@ -16,10 +16,12 @@ const {
 
 // Email transporter setup
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE,
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: Number(process.env.EMAIL_PORT || 587),
+  secure: String(process.env.EMAIL_SECURE || 'false').toLowerCase() === 'true',
   auth: {
-    user: process.env.EMAIL_USERNAME,
-    pass: process.env.EMAIL_PASSWORD,
+    user: process.env.EMAIL_USER || process.env.EMAIL_USERNAME,
+    pass: process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD,
   },
 });
 
@@ -27,7 +29,9 @@ const transporter = nodemailer.createTransport({
 const sendEmail = async (to, subject, text, html) => {
   try {
     await transporter.sendMail({
-      from: `"ATIGS Network" <${process.env.EMAIL_USERNAME}>`,
+      from: process.env.EMAIL_FROM_NAME
+        ? `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM}>`
+        : process.env.EMAIL_FROM,
       to,
       subject,
       text,
@@ -442,7 +446,12 @@ exports.login = async (req, res) => {
     // );
 
     const deviceInfo = req.headers["user-agent"] || "a new device";
-    await sendLoginNotification(user, deviceInfo);
+    try {
+      // Login should not fail because email transport is unavailable.
+      await sendLoginNotification(user, deviceInfo);
+    } catch (emailErr) {
+      console.error("Login notification failed:", emailErr?.message || emailErr);
+    }
 
     res.cookie("accessToken", tokens.accessToken, {
       httpOnly: true,

@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
 const { verifyStripeWebhook, verifyPaystackWebhook } = require("../middleware/webhookVerification");
 const { sendThankYouEmail } = require("../utils/emailSender");
+const AppSetting = require('../models/AppSetting');
 
 
 
@@ -383,6 +384,133 @@ exports.createCheckoutSession = async (req, res) => {
   }
 }
 
+exports.initializePaystackDonation = async (req, res) => {
+  try {
+    const { amount, donorName, donorEmail, message, type = 'once', currency = 'USD' } = req.body;
+    const normalizedCurrency = String(currency || 'USD').toUpperCase();
+    const fallbackRate = Number(process.env.USD_TO_GHS || 15);
+    const setting = await AppSetting.findOne({ key: 'USD_TO_GHS' });
+    const exchangeRate =
+      Number.isFinite(Number(setting?.value)) && Number(setting?.value) > 0
+        ? Number(setting?.value)
+        : fallbackRate;
+
+    if (!amount || Number(amount) < 1) {
+      return res.status(400).json({ message: 'Amount must be at least 1' });
+    }
+    const fallbackEmail =
+      process.env.COMPANY_EMAIL ||
+      process.env.EMAIL_FROM ||
+      process.env.EMAIL_USER ||
+      'donations@atigsnetwork.org';
+    const cleanedEmail = String(donorEmail || '').trim();
+    const payerEmail = cleanedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanedEmail)
+      ? cleanedEmail
+      : fallbackEmail;
+
+    const reference = `DON-${uuidv4()}`;
+    let paystackAmountGhs = Number(amount);
+    if (normalizedCurrency === 'USD') {
+      paystackAmountGhs = Math.max(1, Math.round(Number(amount) * exchangeRate * 100) / 100);
+    } else if (normalizedCurrency !== 'GHS') {
+      return res.status(400).json({ message: 'Unsupported currency. Use USD or GHS.' });
+    }
+
+    const donation = await Donation.create({
+      amount: Number(amount),
+      currency: normalizedCurrency,
+      donorName: donorName || 'Anonymous',
+      donorEmail: payerEmail,
+      paymentGateway: 'paystack',
+      paymentReference: reference,
+      status: 'pending',
+      userId: req.userId || undefined,
+      message,
+      metadata: { type, exchangeRate, paystackAmountGhs },
+    });
+
+    const paystackResponse = await paystack.transaction.initialize({
+      email: payerEmail,
+      amount: Math.round(paystackAmountGhs * 100),
+      currency: 'GHS',
+      reference,
+      callback_url: `${process.env.FRONTEND_URL || req.headers.origin || 'http://localhost:5173'}/donation/confirmation?reference=${reference}`,
+      metadata: {
+        donor_name: donorName || 'Anonymous',
+        donation_type: type,
+        original_currency: normalizedCurrency,
+        original_amount: Number(amount),
+        exchange_rate: exchangeRate,
+        guest_email_provided: Boolean(cleanedEmail),
+      },
+    });
+
+    const authorizationUrl = paystackResponse?.data?.authorization_url;
+    if (!authorizationUrl) {
+      return res.status(502).json({
+        message: paystackResponse?.message || 'Paystack did not return an authorization URL',
+      });
+    }
+
+    return res.status(201).json({
+      message: 'Donation payment initialized',
+      authorizationUrl,
+      reference,
+      donationId: donation._id,
+      paystackAmount: paystackAmountGhs,
+      paystackCurrency: 'GHS',
+      exchangeRate,
+    });
+  } catch (error) {
+    console.error('Initialize paystack donation error:', error);
+    return res.status(500).json({ message: 'Failed to initialize donation payment' });
+  }
+};
+
+exports.verifyDonationPayment = async (req, res) => {
+  try {
+    const { reference } = req.params;
+
+    if (!reference) {
+      return res.status(400).json({ message: 'Reference is required' });
+    }
+
+    const donation = await Donation.findOne({ paymentReference: reference });
+    if (!donation) {
+      return res.status(404).json({ message: 'Donation transaction not found' });
+    }
+
+    const verification = await paystack.transaction.verify({ reference });
+    const status = verification?.data?.status;
+
+    if (status === 'success') {
+      donation.status = 'successful';
+    } else if (status === 'failed') {
+      donation.status = 'failed';
+    } else {
+      donation.status = 'pending';
+    }
+
+    donation.metadata = {
+      ...(donation.metadata || {}),
+      paystack: verification?.data || {},
+    };
+    await donation.save();
+
+    return res.json({
+      status: donation.status,
+      reference: donation.paymentReference,
+      amount: donation.amount,
+      currency: donation.currency,
+      donorName: donation.donorName,
+      createdAt: donation.createdAt,
+    });
+  } catch (error) {
+    console.error('Verify donation payment error:', error);
+    return res.status(500).json({ message: 'Failed to verify donation payment' });
+  }
+};
+
 
 
 
@@ -574,6 +702,29 @@ exports.getDonationHistory = async (req, res) => {
           });
         }
       
+};
+
+exports.getAllDonationsAdmin = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const skip = (page - 1) * limit;
+
+    const [donations, total] = await Promise.all([
+      Donation.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Donation.countDocuments(),
+    ]);
+
+    return res.json({
+      donations,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    console.error('Admin donations fetch error:', error);
+    return res.status(500).json({ message: 'Failed to fetch donations' });
+  }
 };
 
 // Add to your main Swagger setup:

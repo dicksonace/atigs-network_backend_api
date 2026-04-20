@@ -1,7 +1,48 @@
 // controllers/homeController.js
 const NewsletterSubscriber = require("../models/NewsletterSubscriber");
 const ContactMessage = require("../models/ContactMessage");
+const AdminContent = require("../models/AdminContent");
+const MediaAlbum = require("../models/MediaAlbum");
 const { sendEmail } = require("../utils/emailSender");
+
+const PUBLIC_CONTENT_TYPES = new Set(["events", "careers", "press", "insights"]);
+
+exports.getPublishedContent = async (req, res) => {
+  try {
+    const type = String(req.params.type || "")
+      .trim()
+      .toLowerCase();
+    if (!PUBLIC_CONTENT_TYPES.has(type)) {
+      return res.status(400).json({ message: "Invalid content type" });
+    }
+
+    const sort =
+      type === "events" || type === "press"
+        ? { featured: -1, eventDate: -1, createdAt: -1 }
+        : { featured: -1, createdAt: -1 };
+
+    const items = await AdminContent.find({ type, published: true })
+      .sort(sort)
+      .lean();
+
+    return res.json({ items });
+  } catch (error) {
+    console.error("Get published content error:", error);
+    return res.status(500).json({ message: "Failed to load content" });
+  }
+};
+
+exports.getPublishedMediaAlbums = async (req, res) => {
+  try {
+    const albums = await MediaAlbum.find({ published: true })
+      .sort({ sortOrder: 1, createdAt: -1 })
+      .lean();
+    return res.json({ albums });
+  } catch (error) {
+    console.error("Get published media albums error:", error);
+    return res.status(500).json({ message: "Failed to load media gallery" });
+  }
+};
 
 /**
  * @swagger
