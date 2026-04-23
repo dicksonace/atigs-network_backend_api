@@ -605,6 +605,7 @@ exports.paystackWebhook = async (req, res) => {
       }
   
       const event = req.body;
+      console.log('Received Paystack webhook:', event);
       if (event.event === 'charge.success') {
         await Donation.findOneAndUpdate(
           { paymentReference: event.data.reference },
