@@ -434,7 +434,7 @@ exports.initializePaystackDonation = async (req, res) => {
       amount: Math.round(paystackAmountGhs * 100),
       currency: 'GHS',
       reference,
-      callback_url: `${process.env.FRONTEND_URL || req.headers.origin || 'http://localhost:5173'}/donation/confirmation?reference=${reference}`,
+      callback_url: `${process.env.PAYSTACK_CALLBACK_URL}?reference=${reference}`,
       metadata: {
         donor_name: donorName || 'Anonymous',
         donation_type: type,
