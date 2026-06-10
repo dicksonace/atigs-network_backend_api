@@ -1,0 +1,20 @@
+name: Keep Render Backend Alive
+
+on:
+  schedule:
+    # Runs every 14 minutes (Render sleeps after 15 mins)
+    - cron: '*/14 6-23 * * *'
+  # Allows you to manually trigger the workflow from the GitHub Actions tab for testing
+  workflow_dispatch: {}
+
+jobs:
+  ping-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit Render Server
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.RENDER_PING_URL }}")
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "Ping failed with status $HTTP_CODE"
+            exit 1
+          fi
