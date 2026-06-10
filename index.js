@@ -92,6 +92,11 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Ping endpoint
+app.get('/ping', (req, res) => {
+  res.status(200).json({ message: 'pong' });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
